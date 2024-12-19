@@ -52,11 +52,16 @@ def create_population(pop_size, grid_size):
     ]
     return population
 
-# Selection function using tournament selection
+# Selection function using tournament selection method
+# Selects the best individual from a random subset of the population
 def tournament_selection(population, fitness_scores, tournament_size=3):
     selected = []
+    # Repeat the tournament selection process to select the entire population
     for _ in range(len(population)):
+        # Randomly select 'tournament_size' number (3) of individuals from the given population
         tournament = random.sample(list(zip(population, fitness_scores)), tournament_size)
+        # print("tournament: ",tournament)
+        # Select the winner of the tournament based on the maximum fitness score
         winner = max(tournament, key=lambda x: x[1])[0]
         selected.append(winner)
     return selected
@@ -84,17 +89,18 @@ def mutate(grid, mutation_rate=0.01):
 
 # Main function for the genetic algorithm
 def genetic_algorithm(pop_size, grid_size, max_generations=100, generations_until_stop=200):
-    # Generate initial population
+    # Generate initial random population, each grid is a 2D array of 0s and 1s
     population = create_population(pop_size, grid_size)
-    
+
     # Print population to check
     print(f"Initial Population: {len(population)} grids")
 
-    # Calculate fitness scores for each grid
+    # Calculate fitness scores for each grid, using game of life simulation for each grid
+    #returns a tuple of (generations, alive_cells), for each grid
     fitness_scores = [fitness(grid, max_generations) for grid in population]
     
     # Print fitness scores for debugging
-    print(f"Fitness Scores: {fitness_scores}")
+    print(f"Fitness Scores (generations, alive_cells): {fitness_scores}")
 
     # Check if the fitness_scores is not empty
     if not fitness_scores:
@@ -104,11 +110,21 @@ def genetic_algorithm(pop_size, grid_size, max_generations=100, generations_unti
     best_solution = max(zip(population, fitness_scores), key=lambda x: x[1][0])
     best_grid = best_solution[0]
     best_score = best_solution[1]
+    print(best_grid)
+    print(best_score)
+    # return best_grid, best_score
+
+    # עד פה חקרנו 10 גרידים, כל אחד מהם עשה סימולציה של משחק החיים וקיבל ציון של כמה דורות שרד וכמה תאים חיים       
     
     # Iterate through generations
     for generation in range(generations_until_stop):
         selected = tournament_selection(population, fitness_scores)
         next_population = []
+
+        # Ensure selected has an even number of individuals
+        if len(selected) % 2 != 0:
+            selected.append(random.choice(population))  # Add a random individual to make it even
+        
         
         # Crossover and mutation
         for i in range(0, len(selected), 2):
@@ -128,5 +144,10 @@ def genetic_algorithm(pop_size, grid_size, max_generations=100, generations_unti
         if current_best_solution[1][0] > best_score[0]:
             best_grid = current_best_solution[0]
             best_score = current_best_solution[1]
+
+        # Return the best grid and its fitness score if the population size is less than 3 (tornumanet size)
+        if len(population) < 3:
+            break
+
     
     return best_grid, best_score

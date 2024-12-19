@@ -8,13 +8,14 @@ import json
 
 
 class GameOfLife(QMainWindow):
-    def __init__(self, grid_size=20, cell_size=30):
+    def __init__(self, grid_size=10, cell_size=35):
         super().__init__()
 
         self.grid_size = grid_size
         self.cell_size = cell_size
         self.running = False
         self.generation = 0
+        self.future_generation = 0
 
         self.grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
 
@@ -22,7 +23,7 @@ class GameOfLife(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle("Game of Life")
-        self.setGeometry(100, 100, 600, 1300)  # Fixed window size
+        self.setGeometry(100, 100, 600, 800)  # Fixed window size
 
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
@@ -70,7 +71,10 @@ class GameOfLife(QMainWindow):
         self.controls_layout.addWidget(self.optimize_button, 1, 2)
 
         self.generation_label = QLabel(f"Generation: {self.generation}")
-        self.controls_layout.addWidget(self.generation_label, 2, 0, 1, 4)
+        self.controls_layout.addWidget(self.generation_label, 2, 0, 1, 1)
+
+        self.future_generation_label = QLabel(f"Future Generation it will stabilize: {self.future_generation}")
+        self.controls_layout.addWidget(self.future_generation_label, 2, 1, 1, 4)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.step)
@@ -149,13 +153,15 @@ class GameOfLife(QMainWindow):
                 count += self.grid[ny][nx]
         return count
     
-    
-    def optimize_with_genetic_algorithm(self,_, pop_size=20, max_generations=100, generations_until_stop=200):
-    #    pop_size = 20
+    # pop size is the number of random diffrent grids in the population
+    # max_generations is the maximum number of generations to simulate
+    # generations_until_stop is the maximum number of generations that the algorithm will run (and make tournaments), , in order to evolve the population.
+    # Each generation represents one step in the evolutionary process, where individuals (grids) are selected for crossover and mutation to create a new generation.
+    def optimize_with_genetic_algorithm(self,_, pop_size=400, max_generations=300, generations_until_stop=10):
         best_grid, best_score = genetic_algorithm(pop_size, self.grid_size, max_generations, generations_until_stop)
         self.grid = best_grid
-        self.generation = best_score[0]
-        self.generation_label.setText(f"Generation: {self.generation}")
+        self.future_generation = best_score[0]
+        self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
         self.canvas.set_grid(self.grid)
 
 
