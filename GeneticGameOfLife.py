@@ -5,6 +5,7 @@ from PyQt5.QtGui import QColor, QPainter, QBrush
 import sys
 import random
 import json
+import matplotlib.pyplot as plt  # Importing Matplotlib for plotting the graph
 
 
 class GeneticGameOfLife(QMainWindow):
@@ -16,6 +17,7 @@ class GeneticGameOfLife(QMainWindow):
         self.running = False
         self.generation = 0
         self.future_generation = 0
+        self.fitness_data = []  # List to store fitness over generations
 
         self.population = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
 
@@ -78,6 +80,7 @@ class GeneticGameOfLife(QMainWindow):
 
         self.starting_cells_label = QLabel(f"Initial Cells: {self.population.count(1)}")
         self.controls_layout.addWidget(self.starting_cells_label, 2, 3, 1, 4)
+
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.step)
@@ -153,23 +156,37 @@ class GeneticGameOfLife(QMainWindow):
         return count
 
     def optimize_with_genetic_algorithm(self, _, pop_size=500, max_generations=500, generations_until_stop=10):
-        best_chromosome, best_score = genetic_algorithm(pop_size, self.grid_size, max_generations, generations_until_stop)
+        best_chromosome, best_score, fitness_graph_data = genetic_algorithm(pop_size, self.grid_size, max_generations, generations_until_stop)
         self.population = best_chromosome
         self.future_generation = best_score[0]
-# (initial_alive_cells, final_alive_cells, max_diff_gen)
         display_stats = best_score[2]
-        # if max_generations == 1000:
-        self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
-        # else:
-        #     self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
-        # curr_population = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
-        # self.starting_cells_label.setText(f"Initial Cells: {curr_population}")
-        # curr_population = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
-        # curr_population = sum(cell == 1 for row in best_chromosome for cell in row)
-        # self.starting_cells_label.setText(f"Initial Cells: {curr_population}")
+
+        self.fitness_data = fitness_graph_data
+        
+        # # Storing fitness data for graph plotting
+        # self.fitness_data.append(best_score)
+
         curr_population = sum(cell == 1 for row in best_chromosome for cell in row)
-        self.starting_cells_label.setText(f"Initial Cell number: {curr_population}, ,\nPeak happens at generation: {display_stats[2]},\nwith population of {curr_population + best_score[1]} cells and with max diff of {best_score[1]} cells.")
+        self.starting_cells_label.setText(f"Initial Cell number: {curr_population}, Peak happens at generation: {display_stats[2]}, with population of {curr_population + best_score[1]} cells and with max diff of {best_score[1]} cells.")
+        
+        self.plot_button = QPushButton("Plot Fitness Graph")
+        self.plot_button.clicked.connect(self.plot_fitness_graph)
+        self.controls_layout.addWidget(self.plot_button, 3, 0, 1, 4)
+
+        
         self.canvas.set_grid(self.population)
+        self.canvas.update()
+
+    def plot_fitness_graph(self):
+        generations = list(range(len(self.fitness_data)))  # Generation numbers from 0 to len(fitness_values)-1
+        # Plotting the graph
+        plt.plot(generations, self.fitness_data, marker='o', color='b')
+        plt.title("Fitness over Generations")
+        plt.xlabel("Generation")
+        plt.ylabel("Fitness")
+        plt.grid(True)
+        plt.show()
+
 
 
 class Canvas(QWidget):

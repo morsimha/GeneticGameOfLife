@@ -112,6 +112,8 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
     # Generate initial random population, each grid is a 2D array of 0s and 1s
     population = create_initial_population(population_size, grid_size)
 
+    fitness_graph_data = []  # List to store fitness over generations
+
     # Print population to check
     # print(f"Initial Population: {len(population)} grids")
 
@@ -124,7 +126,7 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
 
     
     # Print fitness scores for debugging
-    # print(f"Fitness Scores (generations, cell_diff, initial_alive_cells, final_alive_cells)): {fitness_scores}")
+    print(f"Fitness Scores (generations, cell_diff, initial_alive_cells, final_alive_cells)): {fitness_scores}")
 
     # # Check if the fitness_scores is not empty
     # if not fitness_scores:
@@ -137,6 +139,7 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
     # print(best_chromosome)
     # print("best_fitness ",best_fitness)
     # return best_grid, best_score
+    fitness_graph_data.append(best_fitness[1])
 
     # עד פה חקרנו 10 גרידים, כל אחד מהם עשה סימולציה של משחק החיים וקיבל ציון של כמה דורות שרד וכמה תאים חיים       
     
@@ -162,13 +165,15 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
         fitness_scores = [fitness(chromosome, max_generations) for chromosome in population]
         
         # Print the new fitness scores for debugging
-        print(f"Generation {generation} Fitness Scores: {fitness_scores}")
+        print(f"Generation {generation} Fitness Scores(generations, cell_diff, initial_alive_cells, final_alive_cells): {fitness_scores}")
 
         # Track the best solution
         current_best_solution = max(zip(population, fitness_scores), key=lambda x: x[1][0])
         if current_best_solution[1][0] > best_fitness[0]:
             best_chromosome = current_best_solution[0]
             best_fitness = current_best_solution[1]
+
+        fitness_graph_data.append(best_fitness[1])
 
         # print("#########best_fitness (generations, cell_diff, initial_alive_cells, final_alive_cells, max_diff_gen))",best_fitness)
 
@@ -177,4 +182,4 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
             break
 
     
-    return best_chromosome, best_fitness
+    return best_chromosome, best_fitness, fitness_graph_data
