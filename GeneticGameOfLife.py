@@ -23,7 +23,7 @@ class GeneticGameOfLife(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle("Genetic Game of Life")
-        self.setGeometry(100, 100, 600, 800)  # Fixed window size
+        self.setGeometry(100, 100, 600, 1000)  # Fixed window size
 
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
@@ -152,16 +152,16 @@ class GeneticGameOfLife(QMainWindow):
                 count += self.population[ny][nx]
         return count
 
-    def optimize_with_genetic_algorithm(self, _, pop_size=800, max_generations=1000, generations_until_stop=10):
+    def optimize_with_genetic_algorithm(self, _, pop_size=500, max_generations=500, generations_until_stop=10):
         best_chromosome, best_score = genetic_algorithm(pop_size, self.grid_size, max_generations, generations_until_stop)
         self.population = best_chromosome
         self.future_generation = best_score[0]
 # (initial_alive_cells, final_alive_cells, max_diff_gen)
         display_stats = best_score[2]
-        if max_generations == 1000:
-            self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
-        else:
-            self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
+        # if max_generations == 1000:
+        self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
+        # else:
+        #     self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
         # curr_population = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
         # self.starting_cells_label.setText(f"Initial Cells: {curr_population}")
         # curr_population = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
