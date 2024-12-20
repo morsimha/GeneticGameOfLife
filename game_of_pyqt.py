@@ -7,7 +7,7 @@ import random
 import json
 
 
-class GameOfLife(QMainWindow):
+class GeneticGameOfLife(QMainWindow):
     def __init__(self, grid_size=10, cell_size=35):
         super().__init__()
 
@@ -17,12 +17,12 @@ class GameOfLife(QMainWindow):
         self.generation = 0
         self.future_generation = 0
 
-        self.grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
+        self.population = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
 
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle("Game of Life")
+        self.setWindowTitle("Genetic Game of Life")
         self.setGeometry(100, 100, 600, 800)  # Fixed window size
 
         self.main_widget = QWidget()
@@ -30,7 +30,7 @@ class GameOfLife(QMainWindow):
         self.layout = QVBoxLayout()
         self.main_widget.setLayout(self.layout)
 
-        self.canvas = Canvas(self.grid, self.cell_size)
+        self.canvas = Canvas(self.population, self.cell_size)
         self.layout.addWidget(self.canvas)
 
         self.controls = QWidget()
@@ -54,19 +54,19 @@ class GameOfLife(QMainWindow):
         self.random_button.clicked.connect(self.randomize)
         self.controls_layout.addWidget(self.random_button, 0, 3)
 
-        self.save_button = QPushButton("Save Grid")
-        self.save_button.clicked.connect(self.save_grid)
+        self.save_button = QPushButton("Save Chromosome")
+        self.save_button.clicked.connect(self.save_chromosome)
         self.controls_layout.addWidget(self.save_button, 1, 0)
 
-        self.load_button = QPushButton("Load Grid")
-        self.load_button.clicked.connect(self.load_grid)
+        self.load_button = QPushButton("Load Chromosome")
+        self.load_button.clicked.connect(self.load_chromosome)
         self.controls_layout.addWidget(self.load_button, 1, 1)
 
         self.settings_button = QPushButton("Settings")
         self.settings_button.clicked.connect(self.open_settings)
         self.controls_layout.addWidget(self.settings_button, 1, 2)
 
-        self.optimize_button = QPushButton("Optimize Grid")
+        self.optimize_button = QPushButton("Evolve Chromosome")
         self.optimize_button.clicked.connect(self.optimize_with_genetic_algorithm)
         self.controls_layout.addWidget(self.optimize_button, 1, 2)
 
@@ -92,77 +92,69 @@ class GameOfLife(QMainWindow):
         self.running = False
         self.timer.stop()
         self.generation = 0
-        self.grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        self.population = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
         self.generation_label.setText(f"Generation: {self.generation}")
-        self.canvas.set_grid(self.grid)
+        self.canvas.set_grid(self.population)
 
     def randomize(self):
         self.running = False
         self.timer.stop()
         self.generation = 0
-        self.grid = [[random.choice([0, 1]) for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        self.population = [[random.choice([0, 1]) for _ in range(self.grid_size)] for _ in range(self.grid_size)]
         self.generation_label.setText(f"Generation: {self.generation}")
-        self.canvas.set_grid(self.grid)
+        self.canvas.set_grid(self.population)
 
-    def save_grid(self):
+    def save_chromosome(self):
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getSaveFileName(self, "Save Grid", "", "JSON Files (*.json)", options=options)
+        file_name, _ = QFileDialog.getSaveFileName(self, "Save Chromosome", "", "JSON Files (*.json)", options=options)
         if file_name:
             with open(file_name, "w") as f:
-                json.dump(self.grid, f)
+                json.dump(self.population, f)
 
-    def load_grid(self):
+    def load_chromosome(self):
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self, "Load Grid", "", "JSON Files (*.json)", options=options)
+        file_name, _ = QFileDialog.getOpenFileName(self, "Load Chromosome", "", "JSON Files (*.json)", options=options)
         if file_name:
             with open(file_name, "r") as f:
-                self.grid = json.load(f)
-            # Update grid_size to match the loaded grid's size
-            self.grid_size = len(self.grid)
-            self.canvas.set_grid(self.grid)
-    #        self.setGeometry(100, 100, self.grid_size * self.cell_size, self.grid_size * self.cell_size + 100)
-
+                self.population = json.load(f)
+            self.grid_size = len(self.population)
+            self.canvas.set_grid(self.population)
 
     def open_settings(self):
         settings_dialog = SettingsDialog(self)
         settings_dialog.exec_()
 
     def step(self):
-        new_grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        new_population = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
         for y in range(self.grid_size):
             for x in range(self.grid_size):
                 live_neighbors = self.count_live_neighbors(x, y)
-                if self.grid[y][x] == 1:
+                if self.population[y][x] == 1:
                     if live_neighbors in [2, 3]:
-                        new_grid[y][x] = 1
+                        new_population[y][x] = 1
                 else:
                     if live_neighbors == 3:
-                        new_grid[y][x] = 1
-        self.grid = new_grid
+                        new_population[y][x] = 1
+        self.population = new_population
         self.generation += 1
         self.generation_label.setText(f"Generation: {self.generation}")
-        self.canvas.set_grid(self.grid)
+        self.canvas.set_grid(self.population)
 
     def count_live_neighbors(self, x, y):
         directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
         count = 0
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            # Check if the neighbor indices are within bounds
             if 0 <= nx < self.grid_size and 0 <= ny < self.grid_size:
-                count += self.grid[ny][nx]
+                count += self.population[ny][nx]
         return count
-    
-    # pop size is the number of random diffrent grids in the population
-    # max_generations is the maximum number of generations to simulate
-    # generations_until_stop is the maximum number of generations that the algorithm will run (and make tournaments), , in order to evolve the population.
-    # Each generation represents one step in the evolutionary process, where individuals (grids) are selected for crossover and mutation to create a new generation.
-    def optimize_with_genetic_algorithm(self,_, pop_size=400, max_generations=300, generations_until_stop=10):
-        best_grid, best_score = genetic_algorithm(pop_size, self.grid_size, max_generations, generations_until_stop)
-        self.grid = best_grid
+
+    def optimize_with_genetic_algorithm(self, _, pop_size=400, max_generations=300, generations_until_stop=10):
+        best_chromosome, best_score = genetic_algorithm(pop_size, self.grid_size, max_generations, generations_until_stop)
+        self.population = best_chromosome
         self.future_generation = best_score[0]
         self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
-        self.canvas.set_grid(self.grid)
+        self.canvas.set_grid(self.population)
 
 
 class Canvas(QWidget):
@@ -204,17 +196,15 @@ class SettingsDialog(QDialog):
     def save_settings(self):
         grid_size = int(self.grid_size_input.text())
         self.parent().grid_size = grid_size
-        self.parent().grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
-        
-        # Adjust cell size based on the grid size and fixed window size
-        self.parent().cell_size = 800 // grid_size  # Adjust cell size to fit the fixed window size
-        self.parent().canvas.set_grid(self.parent().grid)
+        self.parent().population = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
+        self.parent().cell_size = 800 // grid_size
+        self.parent().canvas.set_grid(self.parent().population)
 
         self.accept()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    game = GameOfLife()
+    game = GeneticGameOfLife()
     game.show()
     sys.exit(app.exec_())

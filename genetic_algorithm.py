@@ -44,13 +44,12 @@ def fitness(grid, max_generations=100):
     return generations, alive_cells
 
 # Function to create an initial population of grids
-def create_population(pop_size, grid_size):
-    # Create a population with 'pop_size' number of grids, each grid is 'grid_size' x 'grid_size'.
-    population = [
+def create_initial_population(population_size, grid_size):
+    # Generates initial population of chromosomes (grids)
+    return [
         [[random.choice([0, 1]) for _ in range(grid_size)] for _ in range(grid_size)]
-        for _ in range(pop_size)
+        for _ in range(population_size)
     ]
-    return population
 
 # Selection function using tournament selection method
 # Selects the best individual from a random subset of the population
@@ -88,16 +87,16 @@ def mutate(grid, mutation_rate=0.01):
     return grid
 
 # Main function for the genetic algorithm
-def genetic_algorithm(pop_size, grid_size, max_generations=100, generations_until_stop=200):
+def genetic_algorithm(population_size, grid_size, max_generations=100, stabilization_generations=200):
     # Generate initial random population, each grid is a 2D array of 0s and 1s
-    population = create_population(pop_size, grid_size)
+    population = create_initial_population(population_size, grid_size)
 
     # Print population to check
     print(f"Initial Population: {len(population)} grids")
 
     # Calculate fitness scores for each grid, using game of life simulation for each grid
     #returns a tuple of (generations, alive_cells), for each grid
-    fitness_scores = [fitness(grid, max_generations) for grid in population]
+    fitness_scores = [fitness(chromosome, max_generations) for chromosome in population]
     
     # Print fitness scores for debugging
     print(f"Fitness Scores (generations, alive_cells): {fitness_scores}")
@@ -108,46 +107,44 @@ def genetic_algorithm(pop_size, grid_size, max_generations=100, generations_unti
 
     # Find the best solution (the grid with the highest fitness score)
     best_solution = max(zip(population, fitness_scores), key=lambda x: x[1][0])
-    best_grid = best_solution[0]
-    best_score = best_solution[1]
-    print(best_grid)
-    print(best_score)
+    best_chromosome = best_solution[0]
+    best_fitness = best_solution[1]
+    print(best_chromosome)
+    print(best_fitness)
     # return best_grid, best_score
 
     # עד פה חקרנו 10 גרידים, כל אחד מהם עשה סימולציה של משחק החיים וקיבל ציון של כמה דורות שרד וכמה תאים חיים       
     
     # Iterate through generations
-    for generation in range(generations_until_stop):
+    for generation in range(stabilization_generations):
         selected = tournament_selection(population, fitness_scores)
-        next_population = []
+        offspring_population = []
 
         # Ensure selected has an even number of individuals
         if len(selected) % 2 != 0:
-            selected.append(random.choice(population))  # Add a random individual to make it even
-        
+            selected.append(random.choice(population))  # Adding a random individual to make it even
         
         # Crossover and mutation
         for i in range(0, len(selected), 2):
             parent1, parent2 = selected[i], selected[i + 1]
-            child = crossover(parent1, parent2)
-            child = mutate(child)
-            next_population.append(child)
-
-        population = next_population
-        fitness_scores = [fitness(grid, max_generations) for grid in population]
+            offspring = crossover(parent1, parent2)
+            offspring = mutate(offspring)
+            offspring_population.append(offspring)
+        population = offspring_population
+        fitness_scores = [fitness(chromosome, max_generations) for chromosome in population]
         
         # Print the new fitness scores for debugging
         print(f"Generation {generation} Fitness Scores: {fitness_scores}")
 
         # Track the best solution
         current_best_solution = max(zip(population, fitness_scores), key=lambda x: x[1][0])
-        if current_best_solution[1][0] > best_score[0]:
-            best_grid = current_best_solution[0]
-            best_score = current_best_solution[1]
+        if current_best_solution[1][0] > best_fitness[0]:
+            best_chromosome = current_best_solution[0]
+            best_fitness = current_best_solution[1]
 
         # Return the best grid and its fitness score if the population size is less than 3 (tornumanet size)
         if len(population) < 3:
             break
 
     
-    return best_grid, best_score
+    return best_chromosome, best_fitness
