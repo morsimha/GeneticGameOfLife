@@ -8,7 +8,7 @@ import json
 
 
 class GeneticGameOfLife(QMainWindow):
-    def __init__(self, grid_size=10, cell_size=35):
+    def __init__(self, grid_size=50, cell_size=10):
         super().__init__()
 
         self.grid_size = grid_size
@@ -75,6 +75,9 @@ class GeneticGameOfLife(QMainWindow):
 
         self.future_generation_label = QLabel(f"Future Generation it will stabilize: {self.future_generation}")
         self.controls_layout.addWidget(self.future_generation_label, 2, 1, 1, 4)
+
+        self.starting_cells_label = QLabel(f"Initial Cells: {self.population.count(1)}")
+        self.controls_layout.addWidget(self.starting_cells_label, 2, 3, 1, 4)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.step)
@@ -149,11 +152,23 @@ class GeneticGameOfLife(QMainWindow):
                 count += self.population[ny][nx]
         return count
 
-    def optimize_with_genetic_algorithm(self, _, pop_size=400, max_generations=300, generations_until_stop=10):
+    def optimize_with_genetic_algorithm(self, _, pop_size=800, max_generations=1000, generations_until_stop=10):
         best_chromosome, best_score = genetic_algorithm(pop_size, self.grid_size, max_generations, generations_until_stop)
         self.population = best_chromosome
         self.future_generation = best_score[0]
-        self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
+# (initial_alive_cells, final_alive_cells, max_diff_gen)
+        display_stats = best_score[2]
+        if max_generations == 1000:
+            self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
+        else:
+            self.future_generation_label.setText(f"Generation will stabilize at: {self.future_generation}")
+        # curr_population = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        # self.starting_cells_label.setText(f"Initial Cells: {curr_population}")
+        # curr_population = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        # curr_population = sum(cell == 1 for row in best_chromosome for cell in row)
+        # self.starting_cells_label.setText(f"Initial Cells: {curr_population}")
+        curr_population = sum(cell == 1 for row in best_chromosome for cell in row)
+        self.starting_cells_label.setText(f"Initial Cell number: {curr_population}, ,\nPeak happens at generation: {display_stats[2]},\nwith population of {curr_population + best_score[1]} cells and with max diff of {best_score[1]} cells.")
         self.canvas.set_grid(self.population)
 
 

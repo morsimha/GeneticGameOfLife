@@ -28,10 +28,15 @@ def step(grid):
     return new_grid
 
 # Fitness function: we maximize the number of generations before the grid stabilizes or dies
-def fitness(grid, max_generations=100):
+# and also maximize the number of live cells at the end minus at the beginning
+def fitness(grid, max_generations):
     generations = 0
     seen = set()
     
+    # Count the number of live cells at the start
+    initial_alive_cells = sum(sum(row) for row in grid)
+    max_diff = 0
+    max_diff_gen = 0
     while generations < max_generations:
         grid_tuple = tuple(tuple(row) for row in grid)
         if grid_tuple in seen:
@@ -40,14 +45,27 @@ def fitness(grid, max_generations=100):
         grid = step(grid)
         generations += 1
 
-    alive_cells = sum(sum(row) for row in grid)
-    return generations, alive_cells
+        alive_cells = sum(sum(row) for row in grid)
+        # updating the max size of the Metuselah
+        if alive_cells - initial_alive_cells > max_diff:
+            max_diff = alive_cells - initial_alive_cells
+            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%max_diff, gen: ",max_diff, max_diff_gen)
+            max_diff_gen = generations
+
+    # Count the number of live cells at the end
+    final_alive_cells = sum(sum(row) for row in grid)
+    
+    # The fitness is the difference between the final and initial live cells, along with generations
+
+    #(initial_alive_cells, final_alive_cells) is a tuple of the number of live cells at the start and end
+
+    return generations, max_diff, (initial_alive_cells, final_alive_cells, max_diff_gen)
 
 # Function to create an initial population of grids
 def create_initial_population(population_size, grid_size):
-    # Generates initial population of chromosomes (grids)
+    # Generates initial population of chromosomes (grids) with 90% chance of 0 and 10% chance of 1
     return [
-        [[random.choice([0, 1]) for _ in range(grid_size)] for _ in range(grid_size)]
+        [[1 if random.random() < 0.01 else 0 for _ in range(grid_size)] for _ in range(grid_size)]
         for _ in range(population_size)
     ]
 
@@ -87,7 +105,7 @@ def mutate(grid, mutation_rate=0.01):
     return grid
 
 # Main function for the genetic algorithm
-def genetic_algorithm(population_size, grid_size, max_generations=100, stabilization_generations=200):
+def genetic_algorithm(population_size, grid_size, max_generations, stabilization_generations):
     # Generate initial random population, each grid is a 2D array of 0s and 1s
     population = create_initial_population(population_size, grid_size)
 
@@ -96,21 +114,25 @@ def genetic_algorithm(population_size, grid_size, max_generations=100, stabiliza
 
     # Calculate fitness scores for each grid, using game of life simulation for each grid
     #returns a tuple of (generations, alive_cells), for each grid
-    fitness_scores = [fitness(chromosome, max_generations) for chromosome in population]
+    fitness_scores = []
+    for chromosome in population:
+
+        fitness_scores.append(fitness(chromosome, max_generations))
+
     
     # Print fitness scores for debugging
-    print(f"Fitness Scores (generations, alive_cells): {fitness_scores}")
+    print(f"Fitness Scores (generations, cell_diff, initial_alive_cells, final_alive_cells)): {fitness_scores}")
 
-    # Check if the fitness_scores is not empty
-    if not fitness_scores:
-        raise ValueError("Fitness scores are empty. Ensure the population is correctly initialized and the fitness function is returning valid scores.")
+    # # Check if the fitness_scores is not empty
+    # if not fitness_scores:
+    #     raise ValueError("Fitness scores are empty. Ensure the population is correctly initialized and the fitness function is returning valid scores.")
 
-    # Find the best solution (the grid with the highest fitness score)
+    # Find the best solution (the chromosome with the highest fitness score, based on cell difference between start and end)
     best_solution = max(zip(population, fitness_scores), key=lambda x: x[1][0])
     best_chromosome = best_solution[0]
     best_fitness = best_solution[1]
-    print(best_chromosome)
-    print(best_fitness)
+    # print(best_chromosome)
+    print("best_fitness ",best_fitness)
     # return best_grid, best_score
 
     # עד פה חקרנו 10 גרידים, כל אחד מהם עשה סימולציה של משחק החיים וקיבל ציון של כמה דורות שרד וכמה תאים חיים       
@@ -141,6 +163,8 @@ def genetic_algorithm(population_size, grid_size, max_generations=100, stabiliza
         if current_best_solution[1][0] > best_fitness[0]:
             best_chromosome = current_best_solution[0]
             best_fitness = current_best_solution[1]
+
+        print("#########best_fitness (generations, cell_diff, initial_alive_cells, final_alive_cells, max_diff_gen))",best_fitness)
 
         # Return the best grid and its fitness score if the population size is less than 3 (tornumanet size)
         if len(population) < 3:
