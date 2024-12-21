@@ -7,10 +7,11 @@ import json
 import matplotlib.pyplot as plt  # Importing Matplotlib for plotting the graph
 
 # Define constants for the running of the genetic algorithm
-POP_SIZE = 300
+POP_SIZE = 100
 MAX_GENERATIONS = 300
-GENERATIONS_UNTIL_STOP = 20
+GENERATIONS_UNTIL_STOP = 10
 GRID_SIZE = 30
+MUTATION_RATE = 0.2
 
 class GeneticGameOfLife(QMainWindow):
     def __init__(self, grid_size=GRID_SIZE, cell_size=10):
@@ -22,7 +23,7 @@ class GeneticGameOfLife(QMainWindow):
         self.generation = 0
         self.future_generation = 0
         self.fitness_data = []  # List to store fitness over generations
-
+        self.avg_fitness_data = []  # List to store average fitness over generations
         self.population = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
 
         self.init_ui()
@@ -161,12 +162,13 @@ class GeneticGameOfLife(QMainWindow):
         return count
 
     def optimize_with_genetic_algorithm(self, _, pop_size=POP_SIZE, max_generations=MAX_GENERATIONS, generations_until_stop=GENERATIONS_UNTIL_STOP):
-        best_chromosome, best_score, fitness_graph_data = genetic_algorithm(pop_size, self.grid_size, max_generations, generations_until_stop)
+        best_chromosome, best_score, average_fitness_graph_data, best_fitness_graph_data = genetic_algorithm(pop_size, self.grid_size, max_generations, generations_until_stop, MUTATION_RATE)
         self.population = best_chromosome
         self.future_generation = best_score[0]
         display_stats = best_score[2]
 
-        self.fitness_data = fitness_graph_data
+        self.avg_fitness_data = average_fitness_graph_data
+        self.fitness_data = best_fitness_graph_data
         
         # # Storing fitness data for graph plotting
         # self.fitness_data.append(best_score)
@@ -185,10 +187,12 @@ class GeneticGameOfLife(QMainWindow):
     def plot_fitness_graph(self):
         generations = list(range(len(self.fitness_data)))  # Generation numbers from 0 to len(fitness_values)-1
         # Plotting the graph
-        plt.plot(generations, self.fitness_data, marker='o', color='b')
+        plt.plot(generations, self.fitness_data, marker='o', color='b', label='Best Fitness')
+        plt.plot(generations, self.avg_fitness_data, marker='x', color='r', label='Average Fitness')
         plt.title("Fitness over Generations")
         plt.xlabel("Generation")
         plt.ylabel("Fitness")
+        plt.legend()
         plt.grid(True)
         plt.show()
 
