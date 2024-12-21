@@ -7,11 +7,11 @@ import json
 import matplotlib.pyplot as plt  # Importing Matplotlib for plotting the graph
 
 # Define constants for the running of the genetic algorithm
-POP_SIZE = 100
+POP_SIZE = 9
 MAX_GENERATIONS = 300
 GENERATIONS_UNTIL_STOP = 10
 GRID_SIZE = 30
-MUTATION_RATE = 0.2
+MUTATION_RATE = 0.3
 
 class GeneticGameOfLife(QMainWindow):
     def __init__(self, grid_size=GRID_SIZE, cell_size=10):

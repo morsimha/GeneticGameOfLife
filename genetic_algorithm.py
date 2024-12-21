@@ -88,11 +88,16 @@ def tournament_selection(population, fitness_scores, tournament_size=3):
     for _ in range(len(population)):
         # Randomly select 'tournament_size' number (3) of individuals from the given population
         # and sort them based on their fitness scores
-        tournament = sorted(random.sample(list(zip(population, fitness_scores)), tournament_size), key=lambda x: x[1][0], reverse=True)
-        # print("tournament: ",tournament)
-        # Select the winner of the tournament based on the maximum fitness score
-        winner = max(tournament, key=lambda x: x[1])[0]
-        selected.append(winner)
+        if len(population) >= tournament_size:
+            tournament = sorted(list(zip(population, fitness_scores)), key=lambda x: x[1][0], reverse=True)
+            # print("tournament: ",tournament)
+            # Select the winner of the tournament based on the maximum fitness score
+            winner = max(tournament, key=lambda x: x[1])[0]
+            selected.append(winner)
+        else:
+            for chromosome in population:
+                selected.append(chromosome)
+            break
     return selected
 
 # Selection function using roulette wheel selection method
@@ -205,10 +210,10 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
     # Iterate through generations
     for generation in range(stabilization_generations):
         # Remove elements from population and fitness_scores if they have reached the max_generations or have a fitness score of 0
-        population, fitness_scores = zip(*[(chromosome, score) for chromosome, score in zip(population, fitness_scores) if score[0] < max_generations and score[0] != 0])
+        population, fitness_scores = zip(*[(chromosome, score) for chromosome, score in zip(population, fitness_scores) if score[0] < max_generations and score[1] != 0])
         population, fitness_scores = list(population), list(fitness_scores)
         # we decide to use roulette wheel selection with 80% probability, for better results
-        if random.random() < 0.99:
+        if not random.random() < 0.99:
             selected = roulette_wheel_selection(population, fitness_scores)
             print(f"ROULETTE SELECTED: {len(selected)}")
         else:
@@ -223,6 +228,7 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
         # we decide to duplicate 80% probability, for better results
         # when duplicating, we decide to mutate with 20% probability, for better results
         for _ in range(len(population)):
+            fitness_scores = []
             # taking 2 parents from the selected population, after the selection process
             parent1 = random.choice(selected)
             if random.random() < 0.5:
@@ -238,6 +244,10 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
                 if random.random() < MUTATION_RATE:
                     offspring = mutate(offspring)
             offspring_population.append(offspring)
+        
+        #always keep the best chromosome from the previous generation
+        offspring_population.append(best_chromosome)
+
         population = offspring_population
         for chromosome in population:
             curr_fitness = fitness(chromosome, max_generations)
@@ -256,16 +266,19 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
         avg_fitness_graph_data.append(average_fitness)
         print("avg_fitness_graph_data ",avg_fitness_graph_data)
 
+
         # Track the best solution
-        current_best_solution = max(zip(population, fitness_scores), key=lambda x: x[1][0])
-        # if current_best_solution[1][1] > best_fitness[1]:
-        best_chromosome = current_best_solution[0]
-        best_fitness = current_best_solution[1]
+        for i in range(len(population)):
+            best_fitness = 0
+            if fitness_scores[i][1] > best_fitness:
+                best_chromosome = population[i]
+                best_fitness = fitness_scores[i]
 
         best_fitness_graph_data.append(best_fitness[1])
         
 
         print("#########best_fitness ",best_fitness_graph_data)
+        print(f"Generations best_chromosome: {best_fitness[1]}")
 
         # Return the best grid and its fitness score if the population size is less than 3 (tornumanet size)
         if len(population) < 3:
