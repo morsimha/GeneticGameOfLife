@@ -1,5 +1,6 @@
 import random
 import copy
+import math
 
 # Function to count live neighbors of a cell
 def count_live_neighbors(grid, x, y):
@@ -102,27 +103,34 @@ def tournament_selection(population, fitness_scores, tournament_size=3):
 
 # Selection function using roulette wheel selection method
 # Selects individuals based on their fitness scores
+
 def roulette_wheel_selection(population, fitness_scores):
     selected = []
-    # Extract the second element from each tuple (i.e., the fitness score)
-    fitness_values = [score[1] for score in fitness_scores]
-
-    total_fitness = sum(fitness_values)  # Total fitness of the population
+    population_size = len(population)
     
-    # Create a cumulative distribution based on fitness
-    cumulative_fitness = [sum(fitness_values[:i+1]) for i in range(len(fitness_values))]
+    # Rank individuals by fitness (ascending)
+    sorted_population = sorted(zip(population, fitness_scores), key=lambda x: x[1][1])
     
-    for _ in range(len(population)):
-        # Select a random number between 0 and total_fitness
-        random_number = random.uniform(0, total_fitness)
-        
-        # Find the individual corresponding to the random number
-        for i, cumulative_score in enumerate(cumulative_fitness):
-            if random_number <= cumulative_score:
-                selected.append(population[i])
+    # Assign ranks (1 is the worst, N is the best)
+    ranks = list(range(1, population_size + 1))
+    
+    # Calculate selection probabilities based on ranks
+    total_rank = sum(ranks)
+    probabilities = [rank / total_rank for rank in ranks]
+    
+    # Create cumulative distribution
+    cumulative_probabilities = [sum(probabilities[:i+1]) for i in range(len(probabilities))]
+    
+    # Perform selection
+    for _ in range(population_size):
+        random_number = random.uniform(0, 1)
+        for i, cumulative_prob in enumerate(cumulative_probabilities):
+            if random_number <= cumulative_prob:
+                selected.append(sorted_population[i][0])
                 break
-                
+    
     return selected
+
 
 # Crossover function to combine two grids (simple 2D array crossover)
 # Perform crossover in a 5x5 area where 1's are found
@@ -212,8 +220,8 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
         # Remove elements from population and fitness_scores if they have reached the max_generations or have a fitness score of 0
         population, fitness_scores = zip(*[(chromosome, score) for chromosome, score in zip(population, fitness_scores) if score[0] < max_generations and score[1] != 0])
         population, fitness_scores = list(population), list(fitness_scores)
-        # we decide to use roulette wheel selection with 80% probability, for better results
-        if not random.random() < 0.99:
+        # we decide to use roulette wheel selection with 50% probability, for better results
+        if random.random() < 0.9:
             selected = roulette_wheel_selection(population, fitness_scores)
             print(f"ROULETTE SELECTED: {len(selected)}")
         else:
@@ -268,13 +276,14 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
 
 
         # Track the best solution
+        best_fitness_value = 0
         for i in range(len(population)):
-            best_fitness = 0
-            if fitness_scores[i][1] > best_fitness:
+            if fitness_scores[i][1] > best_fitness_value:
                 best_chromosome = population[i]
+                best_fitness_value = fitness_scores[i][1]
                 best_fitness = fitness_scores[i]
 
-        best_fitness_graph_data.append(best_fitness[1])
+        best_fitness_graph_data.append(best_fitness_value)
         
 
         print("#########best_fitness ",best_fitness_graph_data)
