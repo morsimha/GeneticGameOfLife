@@ -50,8 +50,10 @@ def fitness(grid, max_generations):
         # updating the max size of the Metuselah
         if alive_cells - initial_alive_cells > max_diff:
             max_diff = alive_cells - initial_alive_cells
-            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%max_diff, gen: ",max_diff, max_diff_gen)
+            # print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%max_diff, gen: ",max_diff, max_diff_gen)
             max_diff_gen = generations
+
+    print(f"max_diff {max_diff} at gen: {max_diff_gen}")
 
     # Count the number of live cells at the end
     final_alive_cells = sum(sum(row) for row in grid)
@@ -65,12 +67,18 @@ def fitness(grid, max_generations):
     return generations, max_diff, (initial_alive_cells, final_alive_cells, max_diff_gen)
 
 # Function to create an initial population of grids
+# each inital configuration will contain a random 5x5 grid with 0s and 1s
 def create_initial_population(population_size, grid_size):
-    # Generates initial population of chromosomes (grids) with 90% chance of 0 and 10% chance of 1
-    return [
-        [[1 if random.random() < 0.01 else 0 for _ in range(grid_size)] for _ in range(grid_size)]
-        for _ in range(population_size)
-    ]
+    population = []
+    for _ in range(population_size):
+        grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
+        start_x = random.randint(0, grid_size - 5)
+        start_y = random.randint(0, grid_size - 5)
+        for y in range(start_y, start_y + 5):
+            for x in range(start_x, start_x + 5):
+                grid[y][x] = random.choice([0, 1])
+        population.append(grid)
+    return population
 
 # Selection function using tournament selection method
 # Selects the best individual from a random subset of the population
@@ -84,6 +92,31 @@ def tournament_selection(population, fitness_scores, tournament_size=3):
         # Select the winner of the tournament based on the maximum fitness score
         winner = max(tournament, key=lambda x: x[1])[0]
         selected.append(winner)
+    return selected
+
+# Selection function using roulette wheel selection method
+# Selects individuals based on their fitness scores
+def roulette_wheel_selection(population, fitness_scores):
+    selected = []
+    
+    # Extract the second element from each tuple (i.e., the fitness score)
+    fitness_values = [score[1] for score in fitness_scores]
+    
+    total_fitness = sum(fitness_values)  # Total fitness of the population
+    
+    # Create a cumulative distribution based on fitness
+    cumulative_fitness = [sum(fitness_values[:i+1]) for i in range(len(fitness_values))]
+    
+    for _ in range(len(population)):
+        # Select a random number between 0 and total_fitness
+        random_number = random.uniform(0, total_fitness)
+        
+        # Find the individual corresponding to the random number
+        for i, cumulative_score in enumerate(cumulative_fitness):
+            if random_number <= cumulative_score:
+                selected.append(population[i])
+                break
+                
     return selected
 
 # Crossover function to combine two grids (simple 2D array crossover)
@@ -145,33 +178,48 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
     
     # Iterate through generations
     for generation in range(stabilization_generations):
-        # Remove elements from population and fitness_scores if they have generations == max_generations
-        population, fitness_scores = zip(*[(chromosome, score) for chromosome, score in zip(population, fitness_scores) if score[0] < max_generations])
+        # Remove elements from population and fitness_scores if they have reached the max_generations or have a fitness score of 0
+        population, fitness_scores = zip(*[(chromosome, score) for chromosome, score in zip(population, fitness_scores) if score[0] < max_generations or score[0] == 0])
         population, fitness_scores = list(population), list(fitness_scores)
-        selected = tournament_selection(population, fitness_scores)
+        # we decide to use roulette wheel selection with 80% probability, for better results
+        if random.random() < 0.99:
+            selected = roulette_wheel_selection(population, fitness_scores)
+        else:
+            selected = tournament_selection(population, fitness_scores)
         offspring_population = []
+
+        print(f"OUR SELECTED: {len(selected)}")
+
 
         # Ensure selected has an even number of individuals
         if len(selected) % 2 != 0:
             selected.append(random.choice(population))  # Adding a random individual to make it even
         
         # Crossover and mutation
+        # we decide to duplicate and mutate with 80% probability, for better results
         for i in range(0, len(selected), 2):
             parent1, parent2 = selected[i], selected[i + 1]
-            offspring = crossover(parent1, parent2)
-            offspring = mutate(offspring)
+            if random.random() < 0.8:
+                offspring = copy.deepcopy(random.choice([parent1, parent2]))
+            else:
+                offspring = crossover(parent1, parent2)
+      #      offspring = mutate(offspring)
             offspring_population.append(offspring)
         population = offspring_population
         fitness_scores = [fitness(chromosome, max_generations) for chromosome in population]
-        
+
+
+
+        fitness_values = [score[1] for score in fitness_scores]
+        generation_values = [score[0] for score in fitness_scores]
         # Print the new fitness scores for debugging
-        print(f"Generation {generation} Fitness Scores(generations, cell_diff, initial_alive_cells, final_alive_cells): {fitness_scores}")
+        print(f"Generation {generation} Fitness Scores: generations - {generation_values}  cell_diff - {fitness_values} ")
 
         # Track the best solution
         current_best_solution = max(zip(population, fitness_scores), key=lambda x: x[1][0])
-        if current_best_solution[1][0] > best_fitness[0]:
-            best_chromosome = current_best_solution[0]
-            best_fitness = current_best_solution[1]
+        # if current_best_solution[1][1] > best_fitness[1]:
+        best_chromosome = current_best_solution[0]
+        best_fitness = current_best_solution[1]
 
         fitness_graph_data.append(best_fitness[1])
 
