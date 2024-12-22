@@ -89,7 +89,6 @@ def tournament_selection(population, fitness_scores, tournament_size=3):
         # and sort them based on their fitness scores
         if len(population) >= tournament_size:
             tournament = sorted(list(zip(population, fitness_scores)), key=lambda x: x[1][0], reverse=True)
-            # print("tournament: ",tournament)
             # Select the winner of the tournament based on the maximum fitness score
             winner = max(tournament, key=lambda x: x[1])[0]
             selected.append(winner)
@@ -217,7 +216,7 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
         except ValueError:
             break
         population, fitness_scores = list(population), list(fitness_scores)
-        # we decide to use roulette wheel selection with 50% probability, for better results
+        # we decide to use roulette wheel selection with 70% probability, for better results
         if random.random() < 0.7:
             selected = roulette_wheel_selection(population, fitness_scores)
         else:
@@ -237,7 +236,6 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
                 offspring1 = copy.deepcopy(parent1)
                 parent2 = random.choice(selected)
                 offspring2 = copy.deepcopy(parent2)
-
                 offspring = crossover(offspring1, offspring2)
             offspring_population.append(offspring)
         
