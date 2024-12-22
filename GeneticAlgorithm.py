@@ -51,10 +51,8 @@ def fitness(grid, max_generations):
         # updating the max size of the Metuselah
         if alive_cells - initial_alive_cells > max_diff:
             max_diff = alive_cells - initial_alive_cells
-            # print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%max_diff, gen: ",max_diff, max_diff_gen)
             max_diff_gen = generations
 
-    # print(f"max_diff {max_diff} at gen: {max_diff_gen}")
 
     # Count the number of live cells at the end
     final_alive_cells = sum(sum(row) for row in grid)
@@ -108,15 +106,24 @@ def roulette_wheel_selection(population, fitness_scores):
     selected = []
     population_size = len(population)
     
-    # Rank individuals by fitness (ascending)
+    # Rank individuals by fitness (ascending order, worst to best)
     sorted_population = sorted(zip(population, fitness_scores), key=lambda x: x[1][1])
     
     # Assign ranks (1 is the worst, N is the best)
     ranks = list(range(1, population_size + 1))
     
-    # Calculate selection probabilities based on ranks
+    # Calculate rank-based probabilities
     total_rank = sum(ranks)
     probabilities = [rank / total_rank for rank in ranks]
+    
+    # Apply a bias for top ranks 
+    # using 2 as the bias factor, but can be adjusted
+    bias_factor = 2 
+    probabilities = [p ** bias_factor for p in probabilities]
+    
+    # Normalize probabilities
+    total_prob = sum(probabilities)
+    probabilities = [prob / total_prob for prob in probabilities]
     
     # Create cumulative distribution
     cumulative_probabilities = [sum(probabilities[:i+1]) for i in range(len(probabilities))]
@@ -132,48 +139,48 @@ def roulette_wheel_selection(population, fitness_scores):
     return selected
 
 
-# Crossover function to combine two grids (simple 2D array crossover)
-# Perform crossover in a 5x5 area where 1's are found
-def crossover(grid1, grid2, crossover_size=5):
-    grid_size = len(grid1)
-    new_grid = [row[:] for row in grid1]  # Start with a copy of grid1
+def crossover(parent1, parent2):
+    """
+    Perform crossover by replacing between 1 to 5 rows from the bottom of parent1
+    with rows from parent2, starting at the first row containing at least one '1'.
+    """
+    rows = len(parent1)
+    
+    # Find the first row from the bottom with at least one '1' in parent1
+    start_row = None
+    for i in range(rows - 1, -1, -1):
+        if 1 in parent1[i]:
+            start_row = i
+            break
+    
+    # If no '1' is found, return the original parent1
+    if start_row is None:
+        return parent1
+    
+    # Randomly select the number of rows to replace (1 to 5)
+    num_rows = random.randint(1, min(5, rows - start_row))
+    
+    # Perform the row replacement
+    child = [row[:] for row in parent1]  # Create a copy of parent1
+    for i in range(num_rows):
+        if start_row + i < rows:
+            child[start_row + i] = parent2[start_row + i]
+    
+    return child
 
-    # Loop through the grid to find 5x5 regions that contain 1's
-    for y in range(grid_size - crossover_size + 1):  # Ensure the block fits within the grid
-        for x in range(grid_size - crossover_size + 1):
-            # Extract a 5x5 section from both grids
-            section1 = [row[x:x + crossover_size] for row in grid1[y:y + crossover_size]]
-            section2 = [row[x:x + crossover_size] for row in grid2[y:y + crossover_size]]
-
-            # Check if there are 1's in this section (if so, perform crossover)
-            if any(1 in row for row in section1):  # Only perform crossover if section1 has 1's
-                # Perform random crossover within the 5x5 region
-                for i in range(crossover_size):
-                    for j in range(crossover_size):
-                        if random.random() < 0.5:  # Randomly choose whether to swap between grid1 and grid2
-                            # Swap the values between grid1 and grid2
-                            new_grid[y + i][x + j] = section2[i][j] if random.random() < 0.5 else section1[i][j]
-
-    return new_grid
-
-# Mutation function: randomly flip a cell's state
+# Mutation function: randomly flip cell's state
 # 50% chance to flip a 1 to 0 or a 0 to 1 (killing a cell or reviving a dead cell)
-def mutate(grid):
+# relying on the mutation rate and 1's amount to decide how many cells to flip
+def mutate(grid, MUTATION_RATE):
     grid_size = len(grid)
-    if random.random() > 0.5:
-        # Find all cells that are currently 1
-        ones_positions = [(y, x) for y in range(grid_size) for x in range(grid_size) if grid[y][x] == 1]
-        
-        # If there are any 1's, randomly select one and change it to 0
-        if ones_positions:
+    ones_positions = [(y, x) for y in range(grid_size) for x in range(grid_size) if grid[y][x] == 1]
+    for _ in range(random.randint(0, int(MUTATION_RATE * len(ones_positions)))):
+        if random.random() > 0.5 and ones_positions:
             y, x = random.choice(ones_positions)
             grid[y][x] = 0
-    else:
-        for _ in range(grid_size * grid_size):
+        else:
             y, x = random.randint(0, grid_size - 1), random.randint(0, grid_size - 1)
-            if grid[y][x] == 0:
-                grid[y][x] = 1
-                break
+            grid[y][x] = 1
     return grid
 
 # Main function for the genetic algorithm
@@ -183,23 +190,13 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
 
     avg_fitness_graph_data = []  # List to store averagefitness over generations
     best_fitness_graph_data = []  # List to store best fitness over generations
-    # Print population to check
-    # print(f"Initial Population: {len(population)} grids")
 
     # Calculate fitness scores for each grid, using game of life simulation for each grid
-    #returns a tuple of (generations, alive_cells), for each grid
+    # returns a tuple of (generations, alive_cells), for each grid
     fitness_scores = []
     for chromosome in population:
         curr_fitness = fitness(chromosome, max_generations)
         fitness_scores.append(curr_fitness)
-
-    
-    # Print fitness scores for debugging
-    print(f"Fitness Scores (generations, cell_diff, initial_alive_cells, final_alive_cells)): {fitness_scores}")
-
-    # # Check if the fitness_scores is not empty
-    # if not fitness_scores:
-    #     raise ValueError("Fitness scores are empty. Ensure the population is correctly initialized and the fitness function is returning valid scores.")
 
     average_fitness = int(sum(score[1] for score in fitness_scores) / len(fitness_scores))
     avg_fitness_graph_data.append(average_fitness)
@@ -208,49 +205,40 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
     best_solution = max(zip(population, fitness_scores), key=lambda x: x[1][0])
     best_chromosome = best_solution[0]
     best_fitness = best_solution[1]
-    # print(best_chromosome)
-    # print("best_fitness ",best_fitness)
-    # return best_grid, best_score
+
     best_fitness_graph_data.append(best_fitness[1])
-    print(f"Initial Best Fitness: {best_fitness[1]}")
-    # עד פה חקרנו 10 גרידים, כל אחד מהם עשה סימולציה של משחק החיים וקיבל ציון של כמה דורות שרד וכמה תאים חיים       
+    print(f"Initial Best Fitness: {best_fitness[1]}")   
     
     # Iterate through generations
     for generation in range(stabilization_generations):
         # Remove elements from population and fitness_scores if they have reached the max_generations or have a fitness score of 0
-        population, fitness_scores = zip(*[(chromosome, score) for chromosome, score in zip(population, fitness_scores) if score[0] < max_generations and score[1] != 0])
+        try:
+            population, fitness_scores = zip(*[(chromosome, score) for chromosome, score in zip(population, fitness_scores) if score[0] < max_generations and score[1] != 0])
+        except ValueError:
+            break
         population, fitness_scores = list(population), list(fitness_scores)
         # we decide to use roulette wheel selection with 50% probability, for better results
-        if random.random() < 0.9:
+        if random.random() < 0.7:
             selected = roulette_wheel_selection(population, fitness_scores)
-            print(f"ROULETTE SELECTED: {len(selected)}")
         else:
             selected = tournament_selection(population, fitness_scores)
         offspring_population = []
-
-        # # Ensure selected has an even number of individuals
-        # if len(selected) % 2 != 0:
-        #     selected.append(random.choice(population))  # Adding a random individual to make it even
         
         # Crossover and mutation
-        # we decide to duplicate 80% probability, for better results
-        # when duplicating, we decide to mutate with 20% probability, for better results
+        # we decide to duplicate 70% probability, for better results
         for _ in range(len(population)):
             fitness_scores = []
             # taking 2 parents from the selected population, after the selection process
             parent1 = random.choice(selected)
-            if random.random() < 0.5:
+            if random.random() < 0.7:
                 offspring = copy.deepcopy(parent1)
-                if random.random() < MUTATION_RATE:
-                    offspring = mutate(offspring)
+                offspring = mutate(offspring, MUTATION_RATE)
             else:
                 offspring1 = copy.deepcopy(parent1)
                 parent2 = random.choice(selected)
                 offspring2 = copy.deepcopy(parent2)
 
                 offspring = crossover(offspring1, offspring2)
-                if random.random() < MUTATION_RATE:
-                    offspring = mutate(offspring)
             offspring_population.append(offspring)
         
         #always keep the best chromosome from the previous generation
@@ -263,16 +251,10 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
 
 
         fitness_values = [score[1] for score in fitness_scores]
-        generation_values = [score[0] for score in fitness_scores]
-        # Print the new fitness scores for debugging
-        print(f"Generation {generation} Fitness Scores:  cell_diff - {fitness_values} ")
-
 
         # Calculate the average fitness of the current generation
         average_fitness = int(sum(score[1] for score in fitness_scores) / len(fitness_scores))
-        print(f"Generation {generation} Average Fitness: {average_fitness}")
         avg_fitness_graph_data.append(average_fitness)
-        print("avg_fitness_graph_data ",avg_fitness_graph_data)
 
 
         # Track the best solution
@@ -284,12 +266,14 @@ def genetic_algorithm(population_size, grid_size, max_generations, stabilization
                 best_fitness = fitness_scores[i]
 
         best_fitness_graph_data.append(best_fitness_value)
-        
 
-        print("#########best_fitness ",best_fitness_graph_data)
-        print(f"Generations best_chromosome: {best_fitness[1]}")
+        print(f"Generation {generation} Fitness Scores: {fitness_values} ")
+        print(f"Generation {generation} best_chromosome's fitness: {best_fitness[1]}")
+        print(f"Generation {generation} Average Fitness: {average_fitness}\n")
+        print("Average Fitness over generations: ",avg_fitness_graph_data)
+        print(f"Best Fitness over generations: {best_fitness_graph_data}\n\n")
 
-        # Return the best grid and its fitness score if the population size is less than 3 (tornumanet size)
+        # Return the best grid and its fitness score if the population size is less than 3 (tournament size)
         if len(population) < 3:
             break
 

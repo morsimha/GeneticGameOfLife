@@ -1,20 +1,20 @@
-from genetic_algorithm import genetic_algorithm, create_initial_population
+from GeneticAlgorithm import genetic_algorithm, create_initial_population
 from PyQt5.QtWidgets import QDialog, QLineEdit, QLabel, QFileDialog, QPushButton, QApplication, QMainWindow, QVBoxLayout, QWidget, QGridLayout
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor, QPainter, QBrush
 import sys
 import json
-import matplotlib.pyplot as plt  # Importing Matplotlib for plotting the graph
+import matplotlib.pyplot as plt
 
-# Define constants for the running of the genetic algorithm
-POP_SIZE = 100
-MAX_GENERATIONS = 300
-GENERATIONS_UNTIL_STOP = 20
+# Define constants
+POP_SIZE = 100 
+MAX_GENERATIONS = 400  
+GENERATIONS_UNTIL_STOP = 20  
+MUTATION_RATE = 0.5
 GRID_SIZE = 30
-MUTATION_RATE = 0.2
 
 class GeneticGameOfLife(QMainWindow):
-    def __init__(self, grid_size=GRID_SIZE, cell_size=10):
+    def __init__(self, grid_size=GRID_SIZE, cell_size=15):
         super().__init__()
 
         self.grid_size = grid_size
@@ -30,7 +30,7 @@ class GeneticGameOfLife(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle("Genetic Game of Life")
-        self.setGeometry(100, 100, 600, 1000)  # Fixed window size
+        self.setGeometry(100, 100, 800, 1000)  # Fixed window size
 
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
@@ -78,14 +78,18 @@ class GeneticGameOfLife(QMainWindow):
         self.controls_layout.addWidget(self.optimize_button, 1, 2)
 
         self.generation_label = QLabel(f"Generation: {self.generation}")
-        self.generation_label.setStyleSheet("font-size: 20px;")
+        self.generation_label.setStyleSheet("font-size: 17px;")
         self.controls_layout.addWidget(self.generation_label, 2, 0, 1, 1)
 
-        self.future_generation_label = QLabel(f"The Future Generation it will stabilize: {self.future_generation}")
-        self.controls_layout.addWidget(self.future_generation_label, 2, 1, 1, 4)
-
         self.starting_cells_label = QLabel(f"Initial Cells: {self.population.count(1)}")
-        self.controls_layout.addWidget(self.starting_cells_label, 2, 3, 1, 4)
+        self.controls_layout.addWidget(self.starting_cells_label, 2, 1, 1, 4)
+
+        self.params = QLabel(f"""Population size = {POP_SIZE}
+Max generetions per grid  = {MAX_GENERATIONS}
+Max child generetions  = {GENERATIONS_UNTIL_STOP}
+Mutation Rate = {MUTATION_RATE}
+Grid Size = {GRID_SIZE}""")
+        self.controls_layout.addWidget(self.params,2, 3, 1, 4)
 
 
         self.timer = QTimer()
@@ -166,21 +170,14 @@ class GeneticGameOfLife(QMainWindow):
         self.population = best_chromosome
         self.future_generation = best_score[0]
         display_stats = best_score[2]
-
         self.avg_fitness_data = average_fitness_graph_data
         self.fitness_data = best_fitness_graph_data
-        
-        # # Storing fitness data for graph plotting
-        # self.fitness_data.append(best_score)
-
         curr_population = sum(cell == 1 for row in best_chromosome for cell in row)
-        self.starting_cells_label.setText(f"Initial Cell number: {curr_population},\nPeak happens at generation: {display_stats[2]},\nwith population of {curr_population + best_score[1]} cells and with max diff of {best_score[1]} cells.")
+        self.starting_cells_label.setText(f"Peak happens at generation: {display_stats[2]},\nwith population of {curr_population + best_score[1]} cells\nand with max diff of {best_score[1]} cells.\n\nThe chromosome will stabilize at gen: {self.future_generation}")
         
         self.plot_button = QPushButton("Plot Fitness Graph")
         self.plot_button.clicked.connect(self.plot_fitness_graph)
         self.controls_layout.addWidget(self.plot_button, 3, 0, 1, 4)
-
-        
         self.canvas.set_grid(self.population)
         self.canvas.update()
 
