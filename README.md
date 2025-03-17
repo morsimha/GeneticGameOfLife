@@ -1,47 +1,38 @@
-Genetic Game of Life
+Genetic Algorithm for Conway's Game of Life
 
-A GUI-based simulation of Conway's Game of Life enhanced with genetic algorithms for optimization.
+This project implements a genetic algorithm to evolve patterns in Conway's Game of Life. The GUI, built with PyQt5, visualizes the evolutionary process as patterns develop over generations.
 
 Features
 
-Interactive Grid: Start, stop, clear, and randomize populations.
+Genetic Algorithm: Uses selection, crossover, and mutation to evolve patterns.
 
-Genetic Algorithm: Evolve optimal populations.
+PyQt5 GUI: Provides a real-time visualization of the evolving generations.
 
-Save/Load Chromosomes: Export and import configurations.
+Customizable Parameters: Adjust population size, mutation rate, and number of generations.
 
-Custom Settings: Adjust simulation parameters.
-
-Fitness Graph: Visualize fitness evolution.
+Fitness Evaluation: Scores patterns based on predefined criteria.
 
 Installation
 
-pip install PyQt5 matplotlib numpy scipy
+Clone the repository:
 
-Run the Application
+git clone https://github.com/yourusername/genetic-game-of-life.git
+cd genetic-game-of-life
 
-python main.py
+Install dependencies:
+
+pip install -r requirements.txt
 
 Usage
 
-Start/Stop: Control simulation flow.
+Run the main script to start the GUI:
 
-Randomize: Generate random population.
+python main.py
 
-Evolve Chromosome: Run genetic algorithm.
+Configuration
 
-Save/Load: Save or load population from JSON.
+Modify config.py to adjust genetic algorithm parameters.
 
-Plot Graph: Display fitness trends.
+Contributing
 
-Dependencies
-
-Python 3.8+
-
-PyQt5
-
-Matplotlib
-
-NumPy
-
-SciPy
+Pull requests are welcome. Please ensure code follows the project's style and include tests where necessary.
